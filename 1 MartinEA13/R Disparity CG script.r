@@ -10,7 +10,6 @@ OCHAR<-c()
 
 
 ## ...CODE TO ACCESS LIBRARIES
-source("DISPARITY_functions.R")																		# most of the major functions are in this file, version produces the distance matrix via Wills 98 instead of original foote 93
 library(calibrate) 																					# needed for a function for producing alternative strat data
 library(zoo)																						# needed for funtion na.approx that is used to estimate values between points in rarefaction curves
 library(plotrix)																					# needed for function staxlab which can be used to rotate labels and stack them)	
@@ -39,6 +38,10 @@ rownames(PA)<-(pa[,1]) 																				# make rownames vector and adds back 
 
 Orig.PA<-PA[,-1]																					# the original PA (matrix formated) before condensing or culling minus the condense collumn of pa
 Orig.PA.Tax.Div <- apply(Orig.PA,2,sum)																# the taxonomic diversity of Orig.PA
+
+
+source("DISPARITY_functionsV2.R")																	# most of the major functions are in this file, version produces the distance matrix via Wills 98 instead of original foote 93
+
 
 #############
 # below shows the code that will condense the data matrices PA and M if the condense
@@ -107,7 +110,7 @@ ResPCO<-PCO(DistM$D,"Cailliez")																		# PCO from the data (use "Caill
 MS <- ResPCO$pco 																					# makes the morphospace coords from PCO a new object for use in analysis.
 dissim <- c(as.dist(DistM$D))																		# dissimilarity between taxa (based on distances)
 dispco <- c(dist(MS))																				# distances for taxa in PCO
-
+if (length(DistM$kill)>0) rownames(MS)<- rownames(M)[-DistM$kill]
 																					# this is the PA matrix after condensing (missing stages still missing) column but before culling taxa that are impossible to place due to missing data
 PA.cond.Tax.Div <- apply(PA,2,sum)																# the PA matrix used for taxonomic diversity prior to condensing or other editing
 PA.cond<-PA
@@ -311,19 +314,15 @@ colnames(COG.result)[10:12]<-c("sym.early.high.?","sym.early.low.?","CoeffVar")
 ### The following culmilnates in three sets of results, with two pvalues : one for the first 2 bins (early) and one for the last two bins (late)
 ### TEST1 - observed disparity (bootstrapped) equals the maximum
 ##################
-
-two.bin.test.table<-matrix(NA,1,6)
-colnames(two.bin.test.table)<- c("ely.test1", "lt.test1","ely.test2", "lt.test2","ely.test3","lt.test3")
+if (ncol(Complete.PA.cond)>3) {
+two.bin.test.table<-matrix(NA,1,2)
+colnames(two.bin.test.table)<- c("ely.test1", "lt.test1")
 rownames(two.bin.test.table)<-c("pvalue")
-t.b.max.test<-THE.INTEGRATED.GERBER.WILLS.TEST(MS, Complete.PA.cond)
-
-two.bin.test.table[1,1:2]<- c(t.b.max.test[[1]],t.b.max.test[[2]])
-two.bin.test.table[1,3:4]<-c(t.b.max.test[[3]],t.b.max.test[[4]])
-two.bin.test.table[1,5:6]<-c(t.b.max.test[[5]],t.b.max.test[[6]])
-
+t.b.max.test<-THE.INTEGRATED.GERBER.WILLS.TEST(MS, Complete.PA.cond[rownames(MS),])
+two.bin.test.table[1,1:2]<- c(t.b.max.test$early.max.pval,t.b.max.test$late.max.pval)
 write.table(two.bin.test.table,file=paste(Timespan,author.name,"twobintest_.txt",sep="_"), sep="\t")
 two.bin.test.table
-	
+}	
 #####################################
 ### VARIANCE and RANGE VS "DIVERSITY" at the Diversification phase		- applied only to the stage level	
 
